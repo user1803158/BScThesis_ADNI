@@ -4,8 +4,8 @@ This GitHub repository contains all R-code for the BSc Thesis in Mathematics of 
 The repository contains four files: 
   - 1_BScThesis_DataPrep: all data preparation steps.
   - 2_BScThesis_DescriptiveStatistics: descriptive statistics of the dataframe constructed in File 1. 
-  - 3a_BScThesis_msstate_CN: model fitting for patients starting from the 'cognitively normal' state at baseline.
-  - 3b_BScThesis_msstate_MCI: model fitting for patients starting from the 'mild cognitive impairment' state at baseline.
+  - 3a_BScThesis_msstate_CN: model fitting for the dataset containing patients starting from the 'cognitively normal' state at baseline.
+  - 3b_BScThesis_msstate_MCI: model fitting for the dataset containing patients starting from the 'mild cognitive impairment' state at baseline.
 
 Files 2, 3a and 3b can be used only after File 1 was run. Note that File 3b cannot be run after File 3a; to run File 3b, File 1 has to be run again. 
 

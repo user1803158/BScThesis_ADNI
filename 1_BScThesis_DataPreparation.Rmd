@@ -1,0 +1,524 @@
+---
+title: "BSc thesis"
+author: "Lana Broer"
+output: pdf_document
+---
+Last updated: 13/06/2023
+
+
+# Environment preparation 
+
+First, we prepare the environment by clearing the global environment from any variables that may still be loaded. Then, we load all necessary packages.
+
+```{r}
+rm(list = ls())
+```
+
+## Load packages
+
+```{r}
+library(ADNIMERGE) # contains the data 
+library(dplyr) # for data wrangling
+library(corrplot) # to create correlation plot 
+```
+
+
+# Data preparation
+
+In this subsection, we prepare the data for data cleaning. As such, we start by loading the data, after which we divide the original data frame into smaller subsets for clarity. 
+
+## Loading data 
+
+```{r}
+data(adnimerge) # patient data 
+data(datadic) # variable explanations
+data(treatdis) # death records
+```
+
+
+# Data cleaning 
+
+Before moving on to the descriptive statistics and data analysis, some data cleaning will be performed. This is mostly aimed at reducing the number of rows with missing diagnoses.
+
+## Save original dataframe 
+
+```{r}
+original_adnimerge <- adnimerge
+```
+
+## Remove patients without baseline measurement 
+
+```{r}
+adnimerge <- adnimerge[!(is.na(adnimerge$DX) & adnimerge$VISCODE == "bl"),]
+```
+
+## Remove patients with only 1 measurement (censoring time = baseline)
+
+```{r}
+once <- table(adnimerge$RID) == 1
+once <- names(once[once == T])
+
+adnimerge <- adnimerge[!(adnimerge$RID %in% once),]
+
+rm(once)
+```
+
+## Identify deaths 
+
+```{r}
+# identify deaths
+death1 <- grepl('death', tolower(treatdis$WDREASON))
+death2 <- grepl('death', tolower(treatdis$WDPARTCOM))
+death3 <- grepl('die', tolower(treatdis$WDPARTCOM))
+death4 <- grepl('expire', tolower(treatdis$WDREASON))
+death5 <- grepl('expire', tolower(treatdis$WDPARTCOM))
+treatdis$death <- death1 | death2 | death3 | death4 | death5
+
+deaths <- treatdis[treatdis$death == T,]
+deaths <- deaths[!(deaths$RID %in% c(222, 393, 5129, 1368, 2110, # manual check 
+                                     2205, 4530, 4575, 4614, # showed these were 
+                                     4652, 4888, 4947, 1260)), ] # not actual deaths
+
+deaths_bool <- deaths[deaths$RID %in% unique(adnimerge$RID),] %>% 
+  select(RID, EXAMDATE, death) %>%
+  mutate(RID = as.numeric(RID),
+         EXAMDATE = as.Date(EXAMDATE)) %>%
+  arrange(RID, desc(EXAMDATE)) %>%
+  filter(!duplicated(RID))
+
+# add death data to all data 
+baseline.dates <- adnimerge[adnimerge$VISCODE == "bl",] %>%
+  mutate(RID = as.numeric(RID),
+         EXAMDATE = as.Date(EXAMDATE)) %>%
+  select(RID, EXAMDATE) %>%
+  rename(bl.date = EXAMDATE)
+deaths <- left_join(deaths_bool, baseline.dates, by = "RID") %>%
+  mutate(Month.bl = as.numeric(difftime(EXAMDATE, bl.date, unit = 'days'))/(365.25/12),
+         death = "Death",
+         VISCODE = NA) %>%
+  rename(DX = death) %>%
+  select(RID, EXAMDATE, DX, VISCODE, Month.bl)
+
+rm(baseline.dates, death1, death2, death3, death4, death5, deaths_bool)
+```
+
+## Convert data to long format 
+
+To start with, data should be converted to long format with only the first and last date of each diagnosis available. 
+
+```{r}
+# correct long format containing only diagnoses and dates 
+long <- adnimerge %>%
+  select(RID, EXAMDATE, DX, VISCODE, EXAMDATE.bl, Month.bl) %>%
+  mutate(Month.bl = round(Month.bl, 2),
+         DX = as.character(DX))
+
+# assume: if after dementia missing state, then stays in dementia 
+for(i in 1:(nrow(long)-1)){
+  if(long[i, "RID"] == long[i+1, "RID"]){
+    if(!is.na(long[i, "DX"]) &
+       is.na(long[i+1, "DX"]) &
+       long[i, "DX"] == "Dementia")
+      long[i+1, "DX"] = "Dementia"
+  }
+}
+
+long <- long %>%
+  arrange(RID, DX, EXAMDATE)
+
+# remove in between measurements of the same diagnosis 
+long$remove <- NA
+
+for(i in 2:(nrow(long)-1)){
+  if(long[i, "RID"] == long[i+1, "RID"] &
+     !is.na(long[i, "DX"]) &
+     !is.na(long[i+1, "DX"]) &
+     long[i, "DX"] == long[i+1, "DX"]){
+    
+    if(long[i-1, "RID"] == long[i, "RID"]  &
+       !is.na(long[i-1, "DX"]) &
+       long[i-1, "DX"] == long[i, "DX"]){
+      long[i, "remove"] = T
+    }
+    
+  }
+} 
+
+long <- long[is.na(long$remove),] %>%
+  arrange(RID, EXAMDATE)
+
+# keep only the first date of diagnosis 
+first_date <- long %>%
+  filter(!is.na(DX)) %>%
+  mutate(RID_DX = paste0(RID, "_", DX)) %>%
+  arrange(RID, EXAMDATE) %>%
+  filter(!duplicated(RID_DX)) %>%
+  select(RID, DX, EXAMDATE) %>%
+  rename(first = EXAMDATE)
+first_date <- reshape(first_date, idvar = "RID", timevar = "DX", direction = "wide")
+
+# keep only the last date of diagnosis
+last_date <- long %>%
+  filter(!is.na(DX)) %>%
+  mutate(RID_DX = paste0(RID, "_", DX)) %>%
+  arrange(RID, desc(EXAMDATE)) %>%
+  filter(!duplicated(RID_DX)) %>%
+  select(RID, DX, EXAMDATE) %>%
+  rename(last = EXAMDATE)
+last_date <- reshape(last_date, idvar = "RID", timevar = "DX", direction = "wide")
+
+long <- left_join(long, first_date)
+long <- left_join(long, last_date)
+rm(first_date, last_date)
+
+# remove patients that regress (MCI -> CN, dem -> MCI, dem -> CN) stages 
+pt.before <- unique(long$RID)
+long <- long %>%
+  mutate(RID = ifelse((!is.na(first.MCI) & !is.na(last.CN) & first.MCI < last.CN) |
+                        (!is.na(first.Dementia) & !is.na(last.CN) & first.Dementia < last.CN) |
+                        (!is.na(first.Dementia) & !is.na(last.MCI) & first.Dementia < last.MCI), 
+                      NA, RID))
+pt.after <- unique(long$RID)[!is.na(unique(long$RID))]
+length(setdiff(pt.before, pt.after))
+rm(pt.before, pt.after)
+
+long <- long[!is.na(long$RID),]
+
+# remove NA values if they are in an interval between two of the same diagnoses
+for(i in 1:(nrow(long))){
+  if(is.na(long[i, "DX"])){
+    if(!is.na(long[i, "first.CN"]) & 
+       long[i, "first.CN"] <= long[i, "EXAMDATE"] &
+       long[i, "EXAMDATE"] <= long[i, "last.CN"]){
+      long[i, "RID"] = NA
+    }else if(!is.na(long[i, "first.MCI"]) & 
+       long[i, "first.MCI"] <= long[i, "EXAMDATE"] &
+       long[i, "EXAMDATE"] <= long[i, "last.MCI"]){
+      long[i, "RID"] = NA
+    }else if(!is.na(long[i, "first.Dementia"]) & 
+       long[i, "first.Dementia"] <= long[i, "EXAMDATE"] &
+       long[i, "EXAMDATE"] <= long[i, "last.Dementia"]){
+      long[i, "RID"] = NA
+    }
+  }
+} 
+
+long <- long[!is.na(long$RID), ] %>%
+  arrange(RID, EXAMDATE) %>%
+  select(RID, EXAMDATE, DX, VISCODE, Month.bl)
+
+# keep only first and last NA value
+for(i in 2:(nrow(long)-1)){
+  if(long[i, "RID"] == long[i+1, "RID"]){
+    if(is.na(long[i-1, "DX"]) & 
+       is.na(long[i, "DX"]) &
+       is.na(long[i+1, "DX"]))
+      long[i, "RID"] = NA
+  }
+}
+long <- long[!is.na(long$RID), ]
+
+# add deaths 
+deaths <- deaths[deaths$RID %in% long$RID,]
+long <- rbind(long, deaths) %>%
+  arrange(RID, EXAMDATE)
+```
+
+
+# Looking at transitions 
+
+We are specifically interested in the transitions between states. In order to take a quick look at these transitions from a long format dataframe, we will write a function that produces a new dataframe with as output the patient ID, consecutive diagnoses and type of transitions.
+
+```{r}
+# function for crude look at transitions
+
+transitions <- function(data){
+  # keep only one line per diagnosis 
+  for(i in 1:(nrow(data)-1)){
+    if(data[i, "RID"] == data[i+1, "RID"]){
+      if((!is.na(data[i, "DX"]) &
+         !is.na(data[i+1, "DX"]) &
+         data[i, "DX"] == data[i+1, "DX"]) | 
+         (is.na(data[i, "DX"]) &
+          is.na(data[i+1, "DX"]))){
+        data[i, "RID"] = NA
+      }
+    }
+  }
+  data <- data[!is.na(data$RID), ] %>% 
+    arrange(RID, Month.bl) %>%
+    select(RID, DX, Month.bl)
+  
+  # add person indexing
+  data$nr <- 1
+  for(i in 1:(nrow(data)-1)){
+    if(data[i, "RID"] == data[i+1, "RID"]){
+      data[i+1, "nr"] = data[i, "nr"] + 1
+    }
+  }
+  
+  # name transitions 
+  data$transitiontype <- as.character(NA)
+  for(i in 1:(nrow(data)-1)){
+    if(data[i, "RID"] == data[i+1, "RID"]){
+      data[i, "transitiontype"] = paste0(data[i, "DX"], "_to_", data[i+1, "DX"])
+    }
+  }
+  
+  # add information about starting and final states
+  # starting state
+  ## unknown baseline diagnosis
+  data$transitiontype <- ifelse(data$nr == 1 & is.na(data$transitiontype) 
+                                 & is.na(data$DX),
+                                 "NoTransitions_BaselineUnknown", data$transitiontype)
+  ## known baseline diagnosis
+  data$transitiontype <- ifelse(data$nr == 1 & is.na(data$transitiontype) 
+                                 & !is.na(data$DX),
+                                 paste0("NoTransitions_Baseline_", data$DX), data$transitiontype)
+  
+  # final state
+  data$transitiontype <- ifelse(data$nr != 1 & is.na(data$transitiontype) 
+                                 & is.na(data$DX),
+                                 "FinalStateUnknown", data$transitiontype)
+  
+  data$transitiontype <- ifelse(data$nr != 1 & is.na(data$transitiontype) 
+                                 & !is.na(data$DX),
+                                paste0("Finalstate_", data$DX), data$transitiontype)
+  
+  data$nr <- NULL
+  return(data)
+}
+```
+
+## Transitions
+
+```{r}
+trans <- as.data.frame(table(transitions(long)$transitiontype))
+```
+
+
+# Adding states 
+
+Since we are dealing with many NA values, we are introducing two extra states: 
+- MCI-: a state that comes between CN and MCI
+- MCI+: a state that comes between MCI and dementia
+
+```{r}
+# adding MCI- and MCI+
+AddingStates <- left_join(long, transitions(long))
+AddingStates$DX <- ifelse(is.na(AddingStates$DX) & AddingStates$transitiontype == "NA_to_MCI", "MCI-", AddingStates$DX)
+AddingStates$DX <- ifelse(is.na(AddingStates$DX) & AddingStates$RID %in% c(520, 1190, 6001, 6327), "MCI-", AddingStates$DX)
+
+for(i in 1:(nrow(AddingStates)-2)){
+ if(AddingStates[i, "RID"] == AddingStates[i+1, "RID"] &
+    !is.na(AddingStates[i, "transitiontype"]) &
+    AddingStates[i, "transitiontype"] == "MCI_to_NA"){
+   AddingStates[i+1, "DX"] = "MCI+"
+   
+   if(is.na(AddingStates[i+2, "DX"])) AddingStates[i+2, "DX"] = "MCI+"
+ }
+}
+
+long2 <- AddingStates
+long2$transitiontype <- NULL
+rm(AddingStates)
+```
+
+## Censor patients that only have CN observations 
+
+Since for patients with only CN observations, we cannot reasonably assume they will experience cognitive decline, we will be censoring these patients on their last known CN observation. 
+
+```{r}
+CN_to_NA_pat <- transitions(long2)
+CN_to_NA_pat <- CN_to_NA_pat$RID[CN_to_NA_pat$transitiontype == "CN_to_NA"]
+CN_to_NA <- long2[long2$RID %in% CN_to_NA_pat,]
+CN_to_NA <- CN_to_NA[!is.na(CN_to_NA$DX),]
+
+long3 <- long2[!(long2$RID %in% CN_to_NA_pat),]
+long3 <- rbind(long3, CN_to_NA) %>%
+  arrange(RID, EXAMDATE)
+
+rm(CN_to_NA_pat, CN_to_NA)
+
+# remove patients that only have one observation (baseline) left 
+once <- table(long3$RID) == 1
+once <- names(once[once == T])
+
+long3 <- long3[!(long3$RID %in% once),]
+
+rm(once)
+
+# numbers per transition
+trans3 <- as.data.frame(table(transitions(long3)$transitiontype))
+```
+
+## Take out MCI- state
+
+Since patients have a probability of $1$ to leave the MCI- state to MCI, as this is how the MCI- state was defined, we create a new dataframe where we remove the MCI- states. 
+
+```{r}
+long4 <- long3[long3$DX != "MCI-",]
+
+# numbers per transition
+trans4 <- as.data.frame(table(transitions(long4)$transitiontype))
+
+rm(long, long2, trans)
+```
+
+## Select medical variables 
+
+We are mostly interested to see the effect of medical covariates on the transition probabilities. Therefore, we will be selecting which variables have enough measurements to be accounted for in the model. We will be taking the measurement that was taken at the first moment of diagnosis.
+
+```{r}
+# take out the baseline columns
+names.df <- names(adnimerge)
+names.df <- names.df[substr(names.df, nchar(names.df)-2, nchar(names.df)) != ".bl"]
+takeout <- c("COLPROT", "ORIGPROT", "PTID", "SITE", "VISCODE",
+             "AGE", "PTGENDER", "PTEDUCAT", "PTETHCAT", "PTRACCAT", "PTMARRY",
+             "Month", "M", "DX", "FSVERSION", "IMAGEUID")
+names.df <- setdiff(names.df, takeout)
+adni_medical <- adnimerge[,names.df]
+
+rm(names.df, takeout)
+
+# look at the missingness (%) per column
+missing <- as.data.frame(sapply(adni_medical, 
+                                function(x) sum(is.na(x))/length(x)))
+
+# add medical information to relevant follow-up moments
+long4 <- long4 %>%
+  mutate(RID = as.numeric(RID),
+         EXAMDATE = as.Date(EXAMDATE))
+
+adni_medical <- adni_medical %>%
+  mutate(RID = as.numeric(RID),
+         EXAMDATE = as.Date(EXAMDATE))
+
+joined <- left_join(long4, adni_medical, by = c("RID", "EXAMDATE"))
+
+# look at the missingness (%) per column
+missing2 <- as.data.frame(sapply(joined[, 6:ncol(joined)], 
+                                 function(x) sum(is.na(x))/length(x)))
+
+# only values at first moment of diagnosis
+adni_medical_first <- joined %>%
+  arrange(RID, EXAMDATE) %>%
+  mutate(interim = paste(RID, DX)) %>%
+  filter(!duplicated(interim))
+
+# look at the missingness (%) per column
+missing3 <- as.data.frame(sapply(adni_medical_first[, 6:(ncol(adni_medical_first)-1)], 
+                                 function(x) sum(is.na(x))/length(x)))  
+names(missing3) <- "FreqMissing"
+missing3$Var <- rownames(missing3)
+
+rm(joined, missing, missing2)
+```
+
+### Consider only columns with enough values 
+
+We will proceed only with the medical variables that have no more than $1/3$ of data missing.
+
+```{r}
+VarNames_EnoughInfo <- missing3$Var[missing3$FreqMissing < 1/3]
+adni_medical_first2 <- adni_medical_first %>%
+  select(RID, EXAMDATE, DX, VISCODE, Month.bl, all_of(VarNames_EnoughInfo))
+
+rm(adni_medical_first, VarNames_EnoughInfo, missing3)
+```
+
+
+# Data preparation 
+
+Since a lot of the measured medical variables are of similar nature, they will surely show colinearity. Therefore, we will be removing variables that are strongly correlated with (an)other variable(s). For this, we'll use a cut-off value of $0.65$ for the correlation coefficient. 
+
+```{r}
+# calculate correlations
+cormatrix <- cor(adni_medical_first2[, 6:ncol(adni_medical_first2)], use = "pairwise.complete.obs")
+
+# generate correlation plot 
+pdf("/Users/lana/Library/Mobile Documents/com~apple~CloudDocs/Documents/Wiskunde/Jaar 3/Bachelorscriptie/Figuren manuscript/Ch4/corplot.pdf")
+corrplot(cormatrix, type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45, tl.cex = 0.6)
+dev.off()
+
+# extract pairs with > 0.65 correlation coefficient 
+k <- 1 
+pairsmatrix <- matrix(NA, nrow(cormatrix)*ncol(cormatrix), ncol = 2)
+
+for(i in 1:nrow(cormatrix)){
+  for(j in 1:ncol(cormatrix)){
+    if(abs(cormatrix[i,j]) > 0.65){
+      pairsmatrix[k,1] <- rownames(cormatrix)[i]
+      pairsmatrix[k,2] <- colnames(cormatrix)[j]
+      k <- k + 1 
+    }
+  }
+}
+
+pairsmatrix <- as.data.frame(pairsmatrix) %>%
+  filter(!is.na(V1)) %>%
+  filter(V1 != V2)
+
+# keep only unique pairs 
+for(i in 1:nrow(pairsmatrix)){
+  if(pairsmatrix[i,1] > pairsmatrix[i,2]) pairsmatrix[i,] = pairsmatrix[i,c(2,1)]
+}
+
+pairsmatrix <- pairsmatrix %>%
+  distinct(V1, V2)
+
+# look at missingness in these variables 
+v <- unique(c(pairsmatrix$V1, pairsmatrix$V2))
+sort(apply(adni_medical_first2[, v], 2, function(x) sum(is.na(x))))
+
+# remove variables that have high correlations (> 0.65)
+med_variables <- colnames(adni_medical_first2[, 6:ncol(adni_medical_first2)])
+med_variables <- setdiff(med_variables, c("ADAS11", "ADAS13", "ADASQ4", "CDRSB",
+                                          "mPACCdigit", "mPACCtrailsB", "LDELTOTAL",
+                                          "RAVLT.learning", "RAVLT.perc.forgetting",
+                                          "WholeBrain", "Entorhinal", "MidTemp"))
+
+# clear environment
+rm(i,j, k, v, pairsmatrix, cormatrix)
+```
+
+
+# Final dataframe 
+
+This dataframe contains only the variables we are interested in to possibly use for analysis. 
+
+```{r}
+# select non-medical final variables 
+nonmed_variables <- c("RID", "DX", "Month.bl", 
+                      "PTGENDER", "PTETHCAT", "PTRACCAT", 
+                      "PTMARRY", "AGE", "PTEDUCAT")
+
+# create final data frame 
+adnimerge <- adnimerge %>%
+  mutate(RID = as.numeric(RID),
+         DX = as.character(DX))
+
+adni_medical_first3 <- adni_medical_first2[,c("RID", "DX", 
+                                              "Month.bl", med_variables)]
+
+adni_final <- left_join(long4, adnimerge[,nonmed_variables])
+adni_final <- left_join(adni_final, adni_medical_first3)
+adni_final$VISCODE <- adni_final$EXAMDATE <- NULL
+
+# dataframe for table 1 
+baseline <- left_join(adni_final[adni_final$Month.bl == 0,], adnimerge) %>%
+  select(colnames(adni_final), ADAS11, ADAS13, ADASQ4, CDRSB, mPACCdigit, 
+         mPACCtrailsB, LDELTOTAL, RAVLT.learning, RAVLT.perc.forgetting,
+         WholeBrain, Entorhinal, MidTemp)
+```
+
+
+# Clean environment
+
+Save only the objects that are necessary for the files that follow hereafter.
+
+```{r}
+rm(adni_medical, adni_medical_first2, adni_medical_first3, adnimerge,
+   deaths, long3, long4, trans3, trans4)
+```

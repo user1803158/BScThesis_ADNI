@@ -1,0 +1,38 @@
+---
+title: "BSc thesis"
+author: "Lana Broer"
+output: pdf_document
+---
+Last updated: 13/06/2023
+
+
+# Prepare environment 
+
+## Load packages
+
+```{r}
+library(tableone) # to create table 1
+library(xtable) # create LateX from table 
+```
+
+
+# Descriptive statistics 
+
+```{r, echo = F}
+# select variables for in the table 
+listVars <- names(baseline[,c(4, 6, 8:ncol(baseline))])
+catVars <- c("PTGENDER", "PTRACCAT", "APOE4")
+
+# create table 
+table1_strat <- CreateTableOne(listVars, baseline, 
+                               catVars, strata = c("DX"))
+table1_strat
+
+# make LaTeX file from table 1 
+tabAsStringMatrix <- print(table1_strat, printToggle = FALSE, noSpaces = TRUE)
+xtable(tabAsStringMatrix)
+# print(xtable(xtable(tabAsStringMatrix), type = "latex"), file = "Table1.tex")
+
+# clean environment
+rm(listVars, catVars, baseline)
+```

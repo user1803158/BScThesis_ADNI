@@ -6,6 +6,7 @@ The repository contains four files:
   - 2_BScThesis_DescriptiveStatistics: descriptive statistics of the dataframe constructed in File 1. 
   - 3a_BScThesis_msstate_CN: model fitting for patients starting from CN at baseline, on the study and age scale.
   - 3b_BScThesis_msstate_MCI: model fitting for patients starting from MCI at baseline, on the study and age scale.
+
 Files 2, 3a and 3b can be used only after File 1 was run. Note that File 3b cannot be run after File 3a; to run File 3b, File 1 has to be run again. 
 
 Data used in this project is from the Alzheimer's Disease Neuroimaging Initiative. More details on this project can be found on their website: https://adni.loni.usc.edu/about/. 

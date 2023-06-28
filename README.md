@@ -1,5 +1,5 @@
 # BScThesis_ADNI
-This GitHub repository contains all R-code for the BSc Thesis in Mathematics of Lana Broer, completed June 2023, at Leiden University.
+This GitHub repository contains all R-code for the BSc Thesis in Mathematics of Lana Broer, completed July 2023, at Leiden University.
 
 The repository contains four files: 
   - 1_BScThesis_DataPrep: all data preparation steps.

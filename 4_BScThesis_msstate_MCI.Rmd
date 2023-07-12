@@ -253,7 +253,7 @@ plot(msf0.MCI, las = 1,
 pt0.MCI <- probtrans(msf0.MCI, predt = 0, method = "greenwood")
 
 # plot stacked transition probabilities 
-pdf("/Users/lana/Library/Mobile Documents/com~apple~CloudDocs/Documents/Wiskunde/Jaar 3/Bachelorscriptie/Figuren manuscript/Probtrans/MCI/studyscale_baseline.pdf")
+pdf("MCI_studyscale_baseline.pdf")
 print(plot(pt0.MCI, 
      ord = c(4,3,2,1),
      las = 1, 
@@ -676,7 +676,7 @@ plot(msf0.MCI.age, las = 1,
 pt0.MCI.age <- probtrans(msf0.MCI.age, predt = 0, method = "greenwood")
 
 # plot stacked transition probabilities 
-pdf("/Users/lana/Library/Mobile Documents/com~apple~CloudDocs/Documents/Wiskunde/Jaar 3/Bachelorscriptie/Figuren manuscript/Probtrans/MCI/agescale_baseline.pdf")
+pdf("MCI_agescale_baseline.pdf")
 print(plot(pt0.MCI.age, 
      ord = c(4,3,2,1),
      las = 1, 
@@ -909,7 +909,7 @@ rm(apoes, wh, pt, msfAPOE, APOE.ids)
 ```{r, eval = F}
 # age
 for (i in 1:length(age.ids)) {
-    file_name = paste("/Users/lana/Library/Mobile Documents/com~apple~CloudDocs/Documents/Wiskunde/Jaar 3/Bachelorscriptie/Figuren manuscript/Probtrans/MCI/studyscale_age", unique(msMCI$AGE[msMCI$id == age.ids[i]]), ".pdf", sep="")
+    file_name = paste("MCI_studyscale_age", unique(msMCI$AGE[msMCI$id == age.ids[i]]), ".pdf", sep="")
     pdf(file_name)
     print(pt.age.plots[[i]])
     dev.off()
@@ -917,7 +917,7 @@ for (i in 1:length(age.ids)) {
 
 # sex
 for (i in 1:length(sex.ids)) {
-    file_name = paste("/Users/lana/Library/Mobile Documents/com~apple~CloudDocs/Documents/Wiskunde/Jaar 3/Bachelorscriptie/Figuren manuscript/Probtrans/MCI/studyscale_sex", unique(msMCI$PTGENDER[msMCI$id == sex.ids[i]]), ".pdf", sep="")
+    file_name = paste("MCI_studyscale_sex", unique(msMCI$PTGENDER[msMCI$id == sex.ids[i]]), ".pdf", sep="")
     pdf(file_name)
     print(pt.sex.plots[[i]])
     dev.off()
@@ -925,7 +925,7 @@ for (i in 1:length(sex.ids)) {
 
 # MMSE
 for (i in 1:length(MMSE.ids)) {
-    file_name = paste("/Users/lana/Library/Mobile Documents/com~apple~CloudDocs/Documents/Wiskunde/Jaar 3/Bachelorscriptie/Figuren manuscript/Probtrans/MCI/studyscale_MMSE", MMSEquant[i], ".pdf", sep="")
+    file_name = paste("MCI_studyscale_MMSE", MMSEquant[i], ".pdf", sep="")
     pdf(file_name)
     print(pt.MMSE.plots[[i]])
     dev.off()
@@ -933,7 +933,7 @@ for (i in 1:length(MMSE.ids)) {
 
 # APOE
 for (i in 1:length(APOE.ids)) {
-    file_name = paste("/Users/lana/Library/Mobile Documents/com~apple~CloudDocs/Documents/Wiskunde/Jaar 3/Bachelorscriptie/Figuren manuscript/Probtrans/MCI/studyscale_APOE", unique(msMCI$APOE4[msMCI$id == APOE.ids[i]]), ".pdf", sep="")
+    file_name = paste("MCI_studyscale_APOE", unique(msMCI$APOE4[msMCI$id == APOE.ids[i]]), ".pdf", sep="")
     pdf(file_name)
     print(pt.APOE.plots[[i]])
     dev.off()
@@ -945,7 +945,7 @@ for (i in 1:length(APOE.ids)) {
 ```{r, eval = F}
 # age
 for (i in 1:length(age.ids)) {
-    file_name = paste("/Users/lana/Library/Mobile Documents/com~apple~CloudDocs/Documents/Wiskunde/Jaar 3/Bachelorscriptie/Figuren manuscript/Probtrans/MCI/agescale_age", unique(msMCI.age$AGE[msMCI.age$id == age.ids[i]]), ".pdf", sep="")
+    file_name = paste("MCI_agescale_age", unique(msMCI.age$AGE[msMCI.age$id == age.ids[i]]), ".pdf", sep="")
     pdf(file_name)
     print(pt.age.plots_age[[i]])
     dev.off()
@@ -953,7 +953,7 @@ for (i in 1:length(age.ids)) {
 
 # sex
 for (i in 1:length(sex.ids)) {
-    file_name = paste("/Users/lana/Library/Mobile Documents/com~apple~CloudDocs/Documents/Wiskunde/Jaar 3/Bachelorscriptie/Figuren manuscript/Probtrans/MCI/agescale_sex", unique(msMCI.age$PTGENDER[msMCI.age$id == sex.ids[i]]), ".pdf", sep="")
+    file_name = paste("MCI_agescale_sex", unique(msMCI.age$PTGENDER[msMCI.age$id == sex.ids[i]]), ".pdf", sep="")
     pdf(file_name)
     print(pt.sex.plots_age[[i]])
     dev.off()
@@ -961,7 +961,7 @@ for (i in 1:length(sex.ids)) {
 
 # MMSE
 for (i in 1:length(MMSE.ids)) {
-    file_name = paste("/Users/lana/Library/Mobile Documents/com~apple~CloudDocs/Documents/Wiskunde/Jaar 3/Bachelorscriptie/Figuren manuscript/Probtrans/MCI/agescale_MMSE", MMSEquant[i], ".pdf", sep="")
+    file_name = paste("MCI_agescale_MMSE", MMSEquant[i], ".pdf", sep="")
     pdf(file_name)
     print(pt.MMSE.plots_age[[i]])
     dev.off()
@@ -969,7 +969,7 @@ for (i in 1:length(MMSE.ids)) {
 
 # APOE 
 for (i in 1:length(APOE.ids)) {
-    file_name = paste("/Users/lana/Library/Mobile Documents/com~apple~CloudDocs/Documents/Wiskunde/Jaar 3/Bachelorscriptie/Figuren manuscript/Probtrans/MCI/agescale_APOE", unique(msMCI.age$APOE4[msMCI.age$id == APOE.ids[i]]), ".pdf", sep="")
+    file_name = paste("MCI_agescale_APOE", unique(msMCI.age$APOE4[msMCI.age$id == APOE.ids[i]]), ".pdf", sep="")
     pdf(file_name)
     print(pt.APOE.plots_age[[i]])
     dev.off()

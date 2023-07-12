@@ -437,7 +437,7 @@ Since a lot of the measured medical variables are of similar nature, they will s
 cormatrix <- cor(adni_medical_first2[, 6:ncol(adni_medical_first2)], use = "pairwise.complete.obs")
 
 # generate correlation plot 
-pdf("/corplot.pdf")
+pdf("corplot.pdf")
 corrplot(cormatrix, type = "upper", order = "hclust", 
          tl.col = "black", tl.srt = 45, tl.cex = 0.6)
 dev.off()

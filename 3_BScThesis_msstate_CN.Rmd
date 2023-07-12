@@ -255,7 +255,7 @@ plot(msf0.CN, las = 1,
 pt0.CN <- probtrans(msf0.CN, predt = 0, method = "greenwood")
 
 # plot stacked transition probabilities 
-pdf("/studyscale_baseline.pdf")
+pdf("studyscale_baseline.pdf")
 print(plot(pt0.CN, 
      ord = c(5,4,3,2,1),
      las = 1, 
@@ -669,7 +669,7 @@ plot(msf0.CN.age, las = 1,
 pt0.CN.age <- probtrans(msf0.CN.age, predt = 0, method = "greenwood")
 
 # plot stacked transition probabilities 
-pdf("/agecale_baseline.pdf")
+pdf("agecale_baseline.pdf")
 print(plot(pt0.CN.age, 
      ord = c(5,4,3,2,1),
      las = 1, 
@@ -898,7 +898,7 @@ rm(apoes, wh, pt, msfAPOE, APOE.ids)
 ```{r, eval = F}
 # age
 for (i in 1:length(age.ids)) {
-    file_name = paste("/studyscale_age", unique(msCN$AGE[msCN$id == age.ids[i]]), ".pdf", sep="")
+    file_name = paste("studyscale_age", unique(msCN$AGE[msCN$id == age.ids[i]]), ".pdf", sep="")
     pdf(file_name)
     print(pt.age.plots[[i]])
     dev.off()
@@ -906,7 +906,7 @@ for (i in 1:length(age.ids)) {
 
 # sex
 for (i in 1:length(sex.ids)) {
-    file_name = paste("/studyscale_sex", unique(msCN$PTGENDER[msCN$id == sex.ids[i]]), ".pdf", sep="")
+    file_name = paste("studyscale_sex", unique(msCN$PTGENDER[msCN$id == sex.ids[i]]), ".pdf", sep="")
     pdf(file_name)
     print(pt.age.plots[[i]])
     dev.off()
@@ -914,7 +914,7 @@ for (i in 1:length(sex.ids)) {
 
 # MMSE
 for (i in 1:length(MMSE.ids)) {
-    file_name = paste("/studyscale_MMSE", MMSEquant[i], ".pdf", sep="")
+    file_name = paste("studyscale_MMSE", MMSEquant[i], ".pdf", sep="")
     pdf(file_name)
     print(pt.MMSE.plots[[i]])
     dev.off()
@@ -922,7 +922,7 @@ for (i in 1:length(MMSE.ids)) {
 
 # APOE
 for (i in 1:length(APOE.ids)) {
-    file_name = paste("/studyscale_APOE", unique(msCN$APOE4[msCN$id == APOE.ids[i]]), ".pdf", sep="")
+    file_name = paste("studyscale_APOE", unique(msCN$APOE4[msCN$id == APOE.ids[i]]), ".pdf", sep="")
     pdf(file_name)
     print(pt.APOE.plots[[i]])
     dev.off()
@@ -934,7 +934,7 @@ for (i in 1:length(APOE.ids)) {
 ```{r, eval = F}
 # age
 for (i in 1:length(age.ids)) {
-    file_name = paste("/agescale_age", unique(msCN.age$AGE[msCN.age$id == age.ids[i]]), ".pdf", sep="")
+    file_name = paste("agescale_age", unique(msCN.age$AGE[msCN.age$id == age.ids[i]]), ".pdf", sep="")
     pdf(file_name)
     print(pt.age.plots_age[[i]])
     dev.off()
@@ -942,7 +942,7 @@ for (i in 1:length(age.ids)) {
 
 # sex
 for (i in 1:length(sex.ids)) {
-    file_name = paste("/agescale_sex", unique(msCN.age$PTGENDER[msCN.age$id == sex.ids[i]]), ".pdf", sep="")
+    file_name = paste("agescale_sex", unique(msCN.age$PTGENDER[msCN.age$id == sex.ids[i]]), ".pdf", sep="")
     pdf(file_name)
     print(pt.sex.plots_age[[i]])
     dev.off()
@@ -950,7 +950,7 @@ for (i in 1:length(sex.ids)) {
 
 # MMSE
 for (i in 1:length(MMSE.ids)) {
-    file_name = paste("/agescale_MMSE", MMSEquant[i], ".pdf", sep="")
+    file_name = paste("agescale_MMSE", MMSEquant[i], ".pdf", sep="")
     pdf(file_name)
     print(pt.MMSE.plots_age[[i]])
     dev.off()
@@ -958,7 +958,7 @@ for (i in 1:length(MMSE.ids)) {
 
 # APOE
 for (i in 1:length(APOE.ids)) {
-    file_name = paste("/agescale_APOE", unique(msCN.age$APOE4[msCN.age$id == APOE.ids[i]]), ".pdf", sep="")
+    file_name = paste("agescale_APOE", unique(msCN.age$APOE4[msCN.age$id == APOE.ids[i]]), ".pdf", sep="")
     pdf(file_name)
     print(pt.APOE.plots_age[[i]])
     dev.off()
